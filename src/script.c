@@ -5,6 +5,8 @@
 #include "script.h"
 #include "http_parser.h"
 #include "zmalloc.h"
+#include "sha_with_rsa.h"
+#include "sha2.h"
 
 typedef struct {
     char *name;
@@ -45,6 +47,30 @@ static const struct luaL_Reg threadlib[] = {
     { NULL,         NULL                   }
 };
 
+static int script_add_private_key(lua_State *L) {
+    const int idx = luaL_checkint(L, 1);
+    const char *data = luaL_checkstring(L, 2);
+    int ret = rsa_add_private_key(idx, data);
+    lua_pushinteger(L, ret);
+    return 1;
+}
+static int script_sha256_with_rsa(lua_State *L) {
+    const int idx = luaL_checkint(L, 1);
+    const char *data = luaL_checkstring(L, 2);
+    char* sign = sha256_with_rsa_base64(data, idx);
+    lua_pushstring(L, sign);
+    zfree(sign);
+    return 1;
+}
+static int script_sha256(lua_State *L) {
+    const char *data = luaL_checkstring(L, 1);
+    char hex[SHA256_DIGEST_LENGTH * 2 + 1];
+    hex[SHA256_DIGEST_LENGTH * 2] = '\0';
+    sha256(data, hex);
+    lua_pushstring(L, hex);
+    return 1;
+}
+
 lua_State *script_create(char *file, char *url, char **headers) {
     lua_State *L = luaL_newstate();
     luaL_openlibs(L);
@@ -69,6 +95,9 @@ lua_State *script_create(char *file, char *url, char **headers) {
         { "lookup",  LUA_TFUNCTION, script_wrk_lookup  },
         { "connect", LUA_TFUNCTION, script_wrk_connect },
         { "path",    LUA_TSTRING,   path               },
+        { "add_private_key", LUA_TFUNCTION, script_add_private_key },
+        { "sha256_with_rsa", LUA_TFUNCTION, script_sha256_with_rsa },
+        { "sha256", LUA_TFUNCTION, script_sha256 },
         { NULL,      0,             NULL               },
     };
 
