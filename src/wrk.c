@@ -3,6 +3,7 @@
 #include "wrk.h"
 #include "script.h"
 #include "main.h"
+#include "sha_with_rsa.h"
 
 static struct config {
     uint64_t connections;
@@ -195,7 +196,7 @@ int main(int argc, char **argv) {
         script_errors(L, &errors);
         script_done(L, statistics.latency, statistics.requests);
     }
-
+    rsa_clear_all_private_key();
     return 0;
 }
 
